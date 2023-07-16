@@ -1,0 +1,257 @@
+实现的功能
+
+1、404页面
+
+在web.xml中加入：
+               <!--1、错误页面-->
+               <error-page>
+                 <error-code>404</error-code>
+                 <location>/error/404.jsp</location>
+               </error-page>
+               <error-page>
+                 <error-code>500</error-code>
+                 <location>/error/500.jsp</location>
+               </error-page>
+
+2、页数增加和减少
+
+
+            第一个改成这个${pageContext.request.contextPath}/topic?method=list&c_id=${param.c_id}&page=${(topicPage.pageNumber-1>0)?topicPage.pageNumber-1:1}
+            第二个改成这个${pageContext.request.contextPath}/topic?method=list&c_id=${param.c_id}&page=${((topicPage.pageNumber+1)>topicPage.totalPage)?topicPage.totalPage:(topicPage.pageNumber+1)}
+
+
+3、个人空间 （能够查看自己发布过的帖子 和自己的回复记录）
+
+其中 PageDTO类里面也要新建一个如下的构造方法 和 username 属性
+  /*通过用户查询*/
+    public PageDTO(String username, int pageSize, int totalRecord) {
+        this.username = username;
+        this.pageSize = pageSize;
+        this.totalRecord = totalRecord;
+    }
+
+  TopicDao层 里面新建 public List<Topic> findListByUsername(String username, int from, int pageSize)   通过用户名查找帖子
+
+  ReplyDao层 里面新建 public List<Reply> findListByUsername(String username, int from, int pageSize) 通过用户名查找回复
+
+  TopicService层 里面新建 public PageDTO<Topic> listTopicPageByUsername(String username, int page, int pageSize)
+                                调用TopicDdao里的findListByUsername(String username, int from, int pageSize)  通过用户名查找帖子
+                         public PageDTO<Reply> findReplyPageByUsername(String username, int page, int pageSize)
+                                调用ReplyDao层里的findListByUsername(String username, int from, int pageSize)  通过用户名查找回复
+
+  TopicServlet层 里面新建public void list_2(HttpServletRequest request, HttpServletResponse response)
+
+                                调用TopicService的上述俩方法
+
+ 同时新建mySpace.jsp 点击的时候调用TopicServlet的list_2方法 得到loginUser发布过的帖子 和loginUser回复过的内容。
+
+
+
+
+4、删除回复（能够删除自己对帖子做出的回复 仅帖子作者 和自己可以删除）
+
+通过作者 回复内容 和loginUser删除回复
+由于原本的数据库Reply中没有author 所以新建author 相对应的domin层中的Reply类也要新增author属性
+
+ReplyDao层 新建 public int Delete(String username,String content,String author)
+
+TopicService层 新建 public void DeleteReplyByUsernameAndContentAndAuthor( String username,String content,String author)
+                   调用 replyDao.Delete(username,content,author)
+
+TopticSevlet层 中定义 public void DeleteReplyByUsernameAndContentAndAuthor(HttpServletRequest request,HttpServletResponse response)
+                   调用 topicService.DeleteReplyByUsernameAndContentAndAuthor(username,content,author)
+
+
+
+2、登录拦截（过滤器）
+
+
+3、文件的上传下载技术 （上传用户头像）
+功能一：个人空间 （能够查看自己发布过的帖子 和自己的回复记录）
+实现方法：
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+功能二：删除回复（能够删除自己对帖子做出的回复 仅帖子作者 和自己可以删除）
+//通过用户名，内容 和 帖子对作者删除回复
+TopicServlet中新建 public void DeleteReplyByUsernameAndContentAndAuthor(HttpServletRequest request,HttpServletResponse response)方法
+TopicService中新建 public void DeleteReplyByUsernameAndContentAndAuthor( String username,String content,String author) 方法
+replyDao中新建 public int Delete(String username,String content,String author) 方法
+
+
+
+
+1 回复存储的时候要加上作者
+为了打开话题详情的时候能够保存话题的author 回复的时候也能存储author了：
+  index.jsp 的第80行加上  &author=${topic.username}   <a href="${pageContext.request.contextPath}/topic?method=findDetailById&topic_id=${topic.id}&author=${topic.username}" >详情</a>
+
+
+
+
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>cn.lut.se</groupId>
+  <artifactId>SE_Forum</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <packaging>war</packaging>
+
+  <name>SE_Forum Maven Webapp</name>
+  <!-- FIXME change it to the project's website -->
+  <url>http://www.example.com</url>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.source>1.7</maven.compiler.source>
+    <maven.compiler.target>1.7</maven.compiler.target>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>javax.servlet</groupId>
+      <artifactId>javax.servlet-api</artifactId>
+      <version>4.0.1</version>
+    </dependency>
+    <dependency>
+      <groupId>mysql</groupId>
+      <artifactId>mysql-connector-java</artifactId>
+      <version>8.0.25</version>
+    </dependency>
+    <dependency>
+      <groupId>javax.servlet.jsp</groupId>
+      <artifactId>jsp-api</artifactId>
+      <version>2.2</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/commons-dbutils/commons-dbutils -->
+    <dependency>
+      <groupId>commons-dbutils</groupId>
+      <artifactId>commons-dbutils</artifactId>
+      <version>1.7</version>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2 -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-dbcp2</artifactId>
+      <version>2.8.0</version>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/commons-beanutils/commons-beanutils -->
+    <dependency>
+      <groupId>commons-beanutils</groupId>
+      <artifactId>commons-beanutils</artifactId>
+      <version>1.9.4</version>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/taglibs/standard -->
+    <dependency>
+      <groupId>taglibs</groupId>
+      <artifactId>standard</artifactId>
+      <version>1.1.2</version>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/javax.servlet/jstl -->
+    <dependency>
+      <groupId>javax.servlet</groupId>
+      <artifactId>jstl</artifactId>
+      <version>1.2</version>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-fileupload</groupId>
+      <artifactId>commons-fileupload</artifactId>
+      <version>1.3.1</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.4</version>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+
+    <resources>
+      <resource>
+        <directory>src/main/java</directory>
+        <includes>
+          <include>**/*.properties</include>
+          <include>**/*.xml</include>
+        </includes>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
+
+
+    <finalName>SE_Forum</finalName>
+    <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
+      <plugins>
+        <plugin>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>3.1.0</version>
+        </plugin>
+        <!-- see http://maven.apache.org/ref/current/maven-core/default-bindings.html#Plugin_bindings_for_war_packaging -->
+        <plugin>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>3.0.2</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.8.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>2.22.1</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-war-plugin</artifactId>
+          <version>3.2.2</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>2.5.2</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>2.8.2</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+      <plugins>
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <configuration>
+                  <source>8</source>
+                  <target>8</target>
+              </configuration>
+          </plugin>
+      </plugins>
+  </build>
+</project>
